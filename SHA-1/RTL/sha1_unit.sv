@@ -1,4 +1,4 @@
-//`define FAST //add pipeline register
+`define FAST //add pipeline register
 
 module sha1_unit (
     input logic clk,
@@ -51,7 +51,11 @@ always_ff @ (posedge clk or negedge reset_n)
     end
     else begin
         processing <= i_tready_out & o_tvalid_out ? 1'b0 : processing;//send result to up level and clear
-        if(update) iteration <= iteration + 8'h1;
+        `ifdef FAST 
+            if(iteration[7:1] < 7'd80) iteration <= iteration + 8'h1;
+        `else 
+            if(iteration < 8'd80) iteration <= iteration + 8'h1;
+        `endif
     end
 
 assign o_tready_in = ~processing;
@@ -149,7 +153,28 @@ always_comb begin
 end
 
 `ifdef FAST
+    bit [31:0] A_pipe, B_pipe, C_pipe, D_pipe, E_pipe;
+    bit [31:0] FxorE;
+    bit [31:0] WtxorKt;
 
+    always_ff @ (posedge clk) begin
+        FxorE <= E_reg ^ F;
+        WtxorKt <= Wt[0] ^ Kt;
+        A_pipe <= A_reg;
+        B_pipe <= B_reg;
+        C_pipe <= C_reg;
+        D_pipe <= D_reg;
+        E_pipe <= E_reg;
+    end
+
+    always_comb begin
+        update = iteration[7:1] < 7'd80 & processing & iteration[0];
+        A_next = FxorE ^ {A_pipe[26:0], A_pipe[31:27]} ^ WtxorKt;
+        B_next = A_pipe;
+        C_next = {B_pipe[1:0], B_pipe[31:2]};
+        D_next = C_pipe;
+        E_next = D_pipe;
+    end
 `else
     always_comb begin
         update = iteration < 8'd80 & processing;
@@ -162,22 +187,37 @@ end
 `endif
 
 
+`ifdef FAST
+    always_ff @ (posedge clk or negedge reset_n)
+        if(!reset_n) o_tvalid_out <= 1'b0;
+        else if(update & iteration[7:1] == 8'd79) o_tvalid_out <= 1'b1;
+        else if(i_tready_out) o_tvalid_out <= 1'b0;
 
-always_ff @ (posedge clk or negedge reset_n)
-    if(!reset_n) o_tvalid_out <= 1'b0;
-    else if(update & iteration == 8'd79) o_tvalid_out <= 1'b1;
-    else if(i_tready_out) o_tvalid_out <= 1'b0;
-
-always_ff @ (posedge clk) begin
-    if(update & iteration == 8'd79) begin
-        o_A <= A_next;
-        o_B <= B_next;
-        o_C <= C_next;
-        o_D <= D_next;
-        o_E <= E_next;
+    always_ff @ (posedge clk) begin
+        if(update & iteration[7:1] == 8'd79) begin
+            o_A <= A_next;
+            o_B <= B_next;
+            o_C <= C_next;
+            o_D <= D_next;
+            o_E <= E_next;
+        end
     end
-end
+`else
+    always_ff @ (posedge clk or negedge reset_n)
+        if(!reset_n) o_tvalid_out <= 1'b0;
+        else if(update & iteration == 8'd79) o_tvalid_out <= 1'b1;
+        else if(i_tready_out) o_tvalid_out <= 1'b0;
 
+    always_ff @ (posedge clk) begin
+        if(update & iteration == 8'd79) begin
+            o_A <= A_next;
+            o_B <= B_next;
+            o_C <= C_next;
+            o_D <= D_next;
+            o_E <= E_next;
+        end
+    end
+`endif
 
 
 endmodule

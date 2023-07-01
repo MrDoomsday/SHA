@@ -56,7 +56,7 @@ module unit_tb();
     initial begin
         reset_n = 1'b0;
         i_tvalid_in = 1'b0;
-        i_data_in = 512'h0;//current block
+        i_data_in = 512'h1;//current block
         i_A = 32'h0; 
         i_B = 32'h0; 
         i_C = 32'h0;
