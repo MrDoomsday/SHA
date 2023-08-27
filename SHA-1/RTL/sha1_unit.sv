@@ -1,14 +1,15 @@
 `define FAST //add pipeline register
+//`define SIM
 
 module sha1_unit (
     input logic clk,
     input logic reset_n,
 
 //input stream for calculate
-    output  logic               o_tready_in,
-    input   logic               i_tvalid_in,
-    input   logic   [79:0][31:0] i_data_in,//current block
-    input   logic   [31:0]      i_A, i_B, i_C, i_D, i_E,//initial values
+    output  logic                   o_tready_in,
+    input   logic                   i_tvalid_in,
+    input   logic   [15:0][31:0]    i_data_in,//current block
+    input   logic   [31:0]          i_A, i_B, i_C, i_D, i_E,//initial values
 
 //output result
     input   logic               i_tready_out,
@@ -83,7 +84,7 @@ wire [31:0] Wt15_next = Wt[0] ^ Wt[2] ^ Wt[8] ^ Wt[13];
 
 always_ff @ (posedge clk) begin
     if(o_tready_in && i_tvalid_in) begin
-        Wt <= i_data_in;
+        {Wt[0], Wt[1], Wt[2], Wt[3], Wt[4], Wt[5], Wt[6], Wt[7], Wt[8], Wt[9], Wt[10], Wt[11], Wt[12], Wt[13], Wt[14], Wt[15]} <= i_data_in;
     end
     else if(update) begin
         Wt[0] <= Wt[1];
@@ -149,17 +150,20 @@ always_comb begin
             F = 32'h0;
             Kt = 32'h0;
         end
+        `ifdef SIM 
+            $display("Iteration = %0d, Kt = %0h", iteration, Kt); 
+        `endif
     `endif
 end
 
 `ifdef FAST
     bit [31:0] A_pipe, B_pipe, C_pipe, D_pipe, E_pipe;
-    bit [31:0] FxorE;
-    bit [31:0] WtxorKt;
+    bit [31:0] FplusE;
+    bit [31:0] WtplusKt;
 
     always_ff @ (posedge clk) begin
-        FxorE <= E_reg ^ F;
-        WtxorKt <= Wt[0] ^ Kt;
+        FplusE <= E_reg + F;
+        WtplusKt <= Wt[0] + Kt;
         A_pipe <= A_reg;
         B_pipe <= B_reg;
         C_pipe <= C_reg;
@@ -169,7 +173,7 @@ end
 
     always_comb begin
         update = iteration[7:1] < 7'd80 & processing & iteration[0];
-        A_next = FxorE ^ {A_pipe[26:0], A_pipe[31:27]} ^ WtxorKt;
+        A_next = FplusE + {A_pipe[26:0], A_pipe[31:27]} + WtplusKt;
         B_next = A_pipe;
         C_next = {B_pipe[1:0], B_pipe[31:2]};
         D_next = C_pipe;
@@ -178,7 +182,7 @@ end
 `else
     always_comb begin
         update = iteration < 8'd80 & processing;
-        A_next = E_reg ^ F ^ {A_reg[26:0], A_reg[31:27]} ^ Wt[0] ^ Kt;
+        A_next = E_reg + F + {A_reg[26:0], A_reg[31:27]} + Wt[0] + Kt;
         B_next = A_reg;
         C_next = {B_reg[1:0], B_reg[31:2]};
         D_next = C_reg;
@@ -190,11 +194,11 @@ end
 `ifdef FAST
     always_ff @ (posedge clk or negedge reset_n)
         if(!reset_n) o_tvalid_out <= 1'b0;
-        else if(update & iteration[7:1] == 8'd79) o_tvalid_out <= 1'b1;
+        else if(update && iteration[7:1] == 8'd79) o_tvalid_out <= 1'b1;
         else if(i_tready_out) o_tvalid_out <= 1'b0;
 
     always_ff @ (posedge clk) begin
-        if(update & iteration[7:1] == 8'd79) begin
+        if(update && iteration[7:1] == 8'd79) begin
             o_A <= A_next;
             o_B <= B_next;
             o_C <= C_next;
@@ -205,7 +209,7 @@ end
 `else
     always_ff @ (posedge clk or negedge reset_n)
         if(!reset_n) o_tvalid_out <= 1'b0;
-        else if(update & iteration == 8'd79) o_tvalid_out <= 1'b1;
+        else if(update && iteration == 8'd79) o_tvalid_out <= 1'b1;
         else if(i_tready_out) o_tvalid_out <= 1'b0;
 
     always_ff @ (posedge clk) begin

@@ -6,15 +6,15 @@ module unit_tb();
     reg reset_n;
 
 //input stream for calculate
-    wire               o_tready_in;
-    reg               i_tvalid_in;
-    reg   [79:0][31:0] i_data_in;//current block
-    reg   [31:0]      i_A, i_B, i_C, i_D, i_E;//initial values
+    wire                o_tready_in;
+    reg                 i_tvalid_in;
+    reg   [79:0][31:0]  i_data_in;//current block
+    reg   [31:0]        i_A, i_B, i_C, i_D, i_E;//initial values
 
 //output result
-    reg               i_tready_out;
-    wire               o_tvalid_out;
-    wire [31:0]        o_A, o_B, o_C, o_D, o_E;
+    reg                 i_tready_out;
+    wire                o_tvalid_out;
+    wire [31:0]         o_A, o_B, o_C, o_D, o_E;
 
 
 

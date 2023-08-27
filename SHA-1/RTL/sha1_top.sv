@@ -1,18 +1,18 @@
 module sha1_top (
-    input logic clk,
-    input logic reset_n,
+    input bit clk,
+    input bit reset_n,
 
 //input stream for calculate
-    output  logic               o_tready,
-    input   logic               i_tvalid,
-    input   logic   [511:0]     i_tdata,
-    input   logic   [63:0]      i_tkeep,
-    input   logic               i_tlast,
+    output  bit               o_tready,
+    input   bit               i_tvalid,
+    input   bit   [511:0]     i_tdata,
+    input   bit   [63:0]      i_tkeep,
+    input   bit               i_tlast,
 
 //output result
-    input   logic               i_sha_tready,
-    output  logic               o_sha_tvalid,
-    output  logic [159:0]       o_sha_tdata
+    input   bit               i_sha_tready,
+    output  bit               o_sha_tvalid,
+    output  bit [159:0]       o_sha_tdata
 );
 
 /***********************************************************************************************************************/
@@ -30,11 +30,11 @@ wire pa_tlast_out;
 wire unit_ready_in;
 reg unit_valid_in;
 reg [511:0] unit_data_in;
-reg [31:0] unit_A_in, unit_B_in, unit_C_in, unit_D_in, unit_E_in, unit_F_in;
+reg [31:0] unit_A_in, unit_B_in, unit_C_in, unit_D_in, unit_E_in;
 
 reg unit_ready_out;
 wire unit_valid_out;
-wire [31:0] unit_A_out, unit_B_out, unit_C_out, unit_D_out, unit_E_out, unit_F_out;
+wire [31:0] unit_A_out, unit_B_out, unit_C_out, unit_D_out, unit_E_out;
 
 localparam A_init = 32'h67452301;
 localparam B_init = 32'hEFCDAB89;
@@ -193,7 +193,7 @@ end
 //send result
 always_ff @ (posedge clk or negedge reset_n)
     if(!reset_n) o_sha_tvalid <= 1'b0;
-    else if((state == WAIT_COMPLETE) && last_reg) o_sha_tvalid <= 1'b1;
+    else if((state == WAIT_COMPLETE) && unit_valid_out && last_reg ) o_sha_tvalid <= 1'b1;
     else if(i_sha_tready) o_sha_tvalid <= 1'b0;
 
 assign o_sha_tdata = {A, B, C, D, E};
