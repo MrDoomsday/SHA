@@ -6,7 +6,7 @@ module sha1_top (
     output  bit               o_tready,
     input   bit               i_tvalid,
     input   bit   [511:0]     i_tdata,
-    input   bit   [63:0]      i_tkeep,
+    input   bit   [63:0]      i_tkeep,//not used
     input   bit               i_tlast,
 
 //output result
@@ -125,8 +125,8 @@ always_comb begin
 
     case(state)
         WAIT_START: begin
-            pa_ready_out = unit_ready_in;
-            unit_valid_in = pa_valid_out;
+            pa_ready_out = unit_ready_in & ~o_sha_tvalid;//check completed last transaction
+            unit_valid_in = pa_valid_out & ~o_sha_tvalid;
 
             unit_A_in = A_init;
             unit_B_in = B_init;

@@ -38,19 +38,21 @@ class sha1;
 
 
     function bit [4:0][31:0] sha1_calculate(string str);
+    //declaration internal variable
         bit [4:0][31:0] sha1_result;
         int string_length = str.len();
         int align_string_length;
         bit [7:0][7:0] len_in_bit;//длина в битах
         bit [7:0] message_array [];//create message byte array
+        
         bit [79:0][31:0] Wt;
-
         bit [31:0] temp;
         bit [31:0] A, B, C, D, E;
 
-        align_string_length = string_length + 1;//add bit one
+    //code in RFC3174
+        align_string_length = string_length + 1;//add bit one = 0x80
         
-        if(align_string_length % 64 > 55) begin//проверяем, влезает ли 64-битная длина
+        if(align_string_length % 64 > 56) begin//проверяем, влезает ли 64-битная длина
             align_string_length += 64 - (align_string_length % 64) + 64;//если не влезает, то добавляем 
         end
         else begin
